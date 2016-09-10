@@ -1,0 +1,39 @@
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+helloooo
+
+
+
+<br>
+<br><br>
+
+<br>
+<br>
+DAILY SUMMARY GOES HERE
+<%= @avg %>
+min
+max
+humidity
+min
+max
+<br>
+
+a set of min/max/average for the last 5 days
+
+<br>
+<table class="table"> <caption>Optional table caption.</caption> 
+<thead> <tr> 
+<th>ReadingTime</th> 
+<th>Temperature</th> 
+<th>Humidity</th> 
+</tr>
+ </thead> 
+ <tbody> 
+ <% for reading in @reading %>
+  <tr> 
+<td> <%= reading.ReadingTime %> </td> 
+<td> <%= reading.Temperature %> </td> 
+<td> <%= reading.Humidity %> </td> 
+</tr> 
+ <% end %> 
+  </tbody> </table>
+ 
