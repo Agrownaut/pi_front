@@ -1,4 +1,63 @@
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<style>
+
+text {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.line {
+  fill: none;
+  stroke-width: 1.5px;
+}
+
+.label {
+  text-anchor: middle;
+}
+
+.label rect {
+  fill: white;
+}
+
+.label-key {
+  font-weight: bold;
+}
+
+body {
+  font: 10px sans-serif;
+  shape-rendering: crispEdges;
+}
+
+.day {
+  fill: #fff;
+  stroke: #ccc;
+}
+
+.month {
+  fill: none;
+  stroke: #000;
+  stroke-width: 2px;
+}
+
+.RdYlGn .q0-11{fill:rgb(165,0,38)}
+.RdYlGn .q1-11{fill:rgb(215,48,39)}
+.RdYlGn .q2-11{fill:rgb(244,109,67)}
+.RdYlGn .q3-11{fill:rgb(253,174,97)}
+.RdYlGn .q4-11{fill:rgb(254,224,139)}
+.RdYlGn .q5-11{fill:rgb(255,255,191)}
+.RdYlGn .q6-11{fill:rgb(217,239,139)}
+.RdYlGn .q7-11{fill:rgb(166,217,106)}
+.RdYlGn .q8-11{fill:rgb(102,189,99)}
+.RdYlGn .q9-11{fill:rgb(26,152,80)}
+.RdYlGn .q10-11{fill:rgb(0,104,55)}
+
+</style>
 helloooo
 
 
@@ -36,4 +95,160 @@ a set of min/max/average for the last 5 days
 </tr> 
  <% end %> 
   </tbody> </table>
+
+<svg width="960" height="500"></svg>
+  <script src="//d3js.org/d3.v4.0.0-alpha.9.min.js"></script>
+<script>
+var parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S UTC");
+
+var svg = d3.select("svg");
+
+var margin = {top: 30, right: 50, bottom: 30, left: 30},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom,
+    labelPadding = 3;
+
+var g = svg.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.requestTsv("reading", function(d) {
+  d.date = parseTime(d.date);
+  for (var k in d) if (k !== "date") d[k] = +d[k];
+  return d;
+}, function(error, data) {
+  if (error) throw error;
+
+  var series = data.columns.slice(1).map(function(key) {
+    return data.map(function(d) {
+      return {
+        key: key,
+        date: d.date,
+        value: d[key]
+      };
+    });
+  });
+
+  var x = d3.scaleTime()
+      .domain([data[0].date, data[data.length - 1].date])
+      .range([0, width]);
+
+  var y = d3.scaleLinear()
+      .domain([0, d3.max(series, function(s) { return d3.max(s, function(d) { return d.value; }); })])
+      .range([height, 0]);
+
+  var z = d3.scaleCategory10();
+
+  g.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  var serie = g.selectAll(".serie")
+      .data(series)
+    .enter().append("g")
+      .attr("class", "serie");
+
+  serie.append("path")
+      .attr("class", "line")
+      .style("stroke", function(d) { return z(d[0].key); })
+      .attr("d", d3.line()
+          .x(function(d) { return x(d.date); })
+          .y(function(d) { return y(d.value); }));
+
+  var label = serie.selectAll(".label")
+      .data(function(d) { return d; })
+    .enter().append("g")
+      .attr("class", "label")
+      .attr("transform", function(d, i) { return "translate(" + x(d.date) + "," + y(d.value) + ")"; });
+
+  label.append("text")
+      .attr("dy", ".35em")
+      .text(function(d) { return d.value; })
+    .filter(function(d, i) { return i === data.length - 1; })
+    .append("tspan")
+      .attr("class", "label-key")
+      .text(function(d) { return " " + d.key; });
+
+  label.append("rect", "text")
+      .datum(function() { return this.nextSibling.getBBox(); })
+      .attr("x", function(d) { return d.x - labelPadding; })
+      .attr("y", function(d) { return d.y - labelPadding; })
+      .attr("width", function(d) { return d.width + 2 * labelPadding; })
+      .attr("height", function(d) { return d.height + 2 * labelPadding; });
+});
+
+</script>
+
+<script>
+
+var width = 960,
+    height = 136,
+    cellSize = 17; // cell size
+
+var percent = d3.format(".1%"),
+    format = d3.timeFormat("%Y-%m-%d");
+
+var color = d3.scale.quantize()
+    .domain([-.05, .05])
+    .range(d3.range(11).map(function(d) { return "q" + d + "-11"; }));
+
+var svg = d3.select("body").selectAll("svg")
+    .data(d3.range(1990, 2011))
+  .enter().append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("class", "RdYlGn")
+  .append("g")
+    .attr("transform", "translate(" + ((width - cellSize * 53) / 2) + "," + (height - cellSize * 7 - 1) + ")");
+
+svg.append("text")
+    .attr("transform", "translate(-6," + cellSize * 3.5 + ")rotate(-90)")
+    .style("text-anchor", "middle")
+    .text(function(d) { return d; });
+
+var rect = svg.selectAll(".day")
+    .data(function(d) { return d3.time.days(new Date(d, 0, 1), new Date(d + 1, 0, 1)); })
+  .enter().append("rect")
+    .attr("class", "day")
+    .attr("width", cellSize)
+    .attr("height", cellSize)
+    .attr("x", function(d) { return d3.time.weekOfYear(d) * cellSize; })
+    .attr("y", function(d) { return d.getDay() * cellSize; })
+    .datum(format);
+
+rect.append("title")
+    .text(function(d) { return d; });
+
+svg.selectAll(".month")
+    .data(function(d) { return d3.time.months(new Date(d, 0, 1), new Date(d + 1, 0, 1)); })
+  .enter().append("path")
+    .attr("class", "month")
+    .attr("d", monthPath);
+
+d3.csv("calendarview", function(error, csv) {
+  if (error) throw error;
+
+  var data = d3.nest()
+    .key(function(d) { return d.Date; })
+    .rollup(function(d) { return (d[0].Close - d[0].Open) / d[0].Open; })
+    .map(csv);
+
+  rect.filter(function(d) { return d in data; })
+      .attr("class", function(d) { return "day " + color(data[d]); })
+    .select("title")
+      .text(function(d) { return d + ": " + percent(data[d]); });
+});
+
+function monthPath(t0) {
+  var t1 = new Date(t0.getFullYear(), t0.getMonth() + 1, 0),
+      d0 = t0.getDay(), w0 = d3.time.weekOfYear(t0),
+      d1 = t1.getDay(), w1 = d3.time.weekOfYear(t1);
+  return "M" + (w0 + 1) * cellSize + "," + d0 * cellSize
+      + "H" + w0 * cellSize + "V" + 7 * cellSize
+      + "H" + w1 * cellSize + "V" + (d1 + 1) * cellSize
+      + "H" + (w1 + 1) * cellSize + "V" + 0
+      + "H" + (w0 + 1) * cellSize + "Z";
+}
+
+</script>
  
